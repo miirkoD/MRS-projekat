@@ -1,6 +1,6 @@
-import Logo from "@/assets/logo";
-import SignupButton from "@/components/signup-button";
-import React from "react";
+import Logo from '@/assets/logo';
+import SignupButton from '@/components/signup-button';
+import React from 'react';
 
 const Footer = () => {
   return (
@@ -18,7 +18,7 @@ const Footer = () => {
       <div className="flex flex-col justify-between py-[32px] items-start">
         <SignupButton
           btnText="Prijavite se"
-          className="bg-white text-gray-700"
+          className="bg-white text-gray-700 hover:bg-gray-100"
         />
         <span className="text-gray-700 text-[16px]">
           © 2025 All Rights Reserved

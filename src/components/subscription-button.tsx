@@ -1,0 +1,21 @@
+import React from 'react';
+
+type SubscriptionButtonProps = {
+  className?: string;
+};
+const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
+  className,
+}) => {
+  return (
+    <button
+      className={`w-full
+        
+        rounded-xl
+        flex items-center justify-center shadow-md hover:cursor-pointer ${className}`}
+    >
+      Odaberi plan
+    </button>
+  );
+};
+
+export default SubscriptionButton;
