@@ -54,7 +54,10 @@ const SubscriptionSection = () => {
               ))}
             </div>
             <div className="flex content-center items-center justify-center px-[32px] ">
-              <SubscriptionButton className="h-[50px] bg-white text-gray-500  hover:bg-gray-100" />
+              <SubscriptionButton
+                txt="Odaberi plan"
+                className="h-[50px] bg-white text-gray-500  hover:bg-gray-100"
+              />
             </div>
           </div>
         </div>
@@ -83,6 +86,7 @@ const SubscriptionSection = () => {
             </div>
             <div className="flex content-center items-center justify-center px-[40px] ">
               <SubscriptionButton
+                txt="Odaberi plan"
                 className="h-[58px] bg-[#A093AA]
         hover:bg-[#8F7F9A]
         text-white"
@@ -114,7 +118,10 @@ const SubscriptionSection = () => {
               ))}
             </div>
             <div className="flex content-center items-center justify-center px-[32px] ">
-              <SubscriptionButton className="h-[50px] bg-white text-gray-500 hover:bg-gray-100" />
+              <SubscriptionButton
+                txt="Odaberi plan"
+                className="h-[50px] bg-white text-gray-500 hover:bg-gray-100"
+              />
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import Logo from '@/assets/logo';
 import SignupButton from '@/components/signup-button';
+import Link from 'next/link';
 import React from 'react';
 
 const Footer = () => {
@@ -16,10 +17,12 @@ const Footer = () => {
         </div>
       </div>
       <div className="flex flex-col justify-between py-[32px] items-start">
-        <SignupButton
-          btnText="Prijavite se"
-          className="bg-white text-gray-700 hover:bg-gray-100"
-        />
+        <Link href="/login">
+          <SignupButton
+            btnText="Prijavite se"
+            className="bg-white text-gray-700 hover:bg-gray-100"
+          />
+        </Link>
         <span className="text-gray-700 text-[16px]">
           © 2025 All Rights Reserved
         </span>
