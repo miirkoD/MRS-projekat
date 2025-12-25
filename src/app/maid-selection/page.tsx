@@ -10,7 +10,6 @@ export default function MaidSelectionPage() {
       </div>
       
       <main className="flex-grow">
-        {/* Ovde možeš dodati i neki naslov stranice ako želiš */}
         <div className="py-10 text-center bg-gray-50">
           <h1 className="text-4xl font-bold text-black">Naši Eksperti</h1>
           <p className="text-gray-500 mt-2">Izaberite osobu koja najbolje odgovara vašim potrebama</p>
