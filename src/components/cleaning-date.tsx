@@ -11,6 +11,7 @@ function classNames(...classes: (string | undefined | false | null)[]): string {
 
 export default function CleaningDate({
   cleaningDate,
+  onRefresh,
 }: {
   cleaningDate: {
     id: number;
@@ -19,9 +20,48 @@ export default function CleaningDate({
     startDatetime: string;
     endDatetime: string;
   };
+  onRefresh: () => void;
 }) {
   const startDateTime = parseISO(cleaningDate.startDatetime);
   const endDateTime = parseISO(cleaningDate.endDatetime);
+
+  async function handleCancel() {
+    await fetch(`/api/cleaning/${cleaningDate.id}`, {
+      method: "DELETE",
+    });
+    onRefresh();
+  }
+
+  async function handleEdit(offsetMinutes:number) {
+    const startDateTime=parseISO(cleaningDate.startDatetime);
+    const endDateTime=parseISO(cleaningDate.endDatetime);
+
+    const newStart=new Date(startDateTime.getTime()+offsetMinutes*60000);
+    const newEnd=new Date(endDateTime.getTime()+offsetMinutes*60000);
+
+    const sameDay=
+      newStart.getDate()===startDateTime.getDate() &&
+      newStart.getMonth()===startDateTime.getMonth() &&
+      newStart.getFullYear()===startDateTime.getFullYear() &&
+      newEnd.getDate()===endDateTime.getDate() &&
+      newEnd.getMonth()===endDateTime.getMonth() &&
+      newEnd.getFullYear()===endDateTime.getFullYear();
+
+    if(!sameDay){
+      alert("Izmena vremena mora ostati unutar istog dana.");
+      return;
+    }
+
+    await fetch(`/api/cleaning/${cleaningDate.id}`,{
+      method:"PUT",
+      headers:{ "Content-Type":"application/json"},
+      body:JSON.stringify({
+        startDateTime:newStart.toISOString(),
+        endDateTime:newEnd.toISOString(),
+      }),
+    });
+    onRefresh();
+  }
 
   return (
     <li className="flex items-center px-4 py-2 space-x-4 group rounded-xl focus-within:bg-gray-100 hover:bg-gray-100">
@@ -68,28 +108,28 @@ export default function CleaningDate({
             <div className="py-1">
               <Menu.Item>
                 {({ active }: { active: boolean }) => (
-                  <a
-                    href="#"
+                  <button
+                    onClick={() => handleEdit(30)}
                     className={classNames(
                       active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "block px-4 py-2 text-sm"
+                      "w-full text-left block px-4 py-2 text-sm"
                     )}
                   >
                     Edit
-                  </a>
+                  </button>
                 )}
               </Menu.Item>
               <Menu.Item>
                 {({ active }: { active: boolean }) => (
-                  <a
-                    href="#"
+                  <button
+                    onClick={handleCancel}
                     className={classNames(
                       active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "block px-4 py-2 text-sm"
+                      "w-full text-left block px-4 py-2 text-sm"
                     )}
                   >
                     Cancel
-                  </a>
+                  </button>
                 )}
               </Menu.Item>
             </div>

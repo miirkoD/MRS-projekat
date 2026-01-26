@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     add,
     eachDayOfInterval,
@@ -20,26 +20,6 @@ import ChevronLeftIcon from "@/components/icons/chevron-left-icon";
 import ChevronRightIcon from "@/components/icons/chevron-right-icon";
 import CleaningDate from "@/components/cleaning-date";
 
-// ovo mi je samo radi testa, uzeo sam podatke sa turorijala
-const cleaningDates = [
-    {
-        id: 1,
-        name: "Leslie Alexander",
-        imageUrl:
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?...",
-        startDatetime: "2026-01-11T13:00",
-        endDatetime: "2026-01-11T14:30",
-    },
-    {
-        id: 2,
-        name: "Michael Foster",
-        imageUrl:
-            "https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?...",
-        startDatetime: "2026-01-20T09:00",
-        endDatetime: "2026-01-20T11:30",
-    },
-];
-
 function classNames(...classes: (string | undefined | false | null)[]): string {
     return classes.filter(Boolean).join(" ");
 }
@@ -55,10 +35,110 @@ const colStartClasses = [
 ];
 
 export default function Calendar() {
-    const today = startOfToday();
-    const [selectedDay, setSelectedDay] = useState(today);
-    const [currentMonth, setCurrentMonth] = useState(format(today, "MMM-yyyy"));
-    const firstDayCurrentMonth = parse(currentMonth, "MMM-yyyy", new Date());
+    const [today, setToday] = useState<Date | null>(null);
+    const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+    const [currentMonth, setCurrentMonth] = useState<string>("");
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [cleaningDates, setCleaningDates] = useState<Array<{
+        id?: string;
+        name?: string;
+        imageUrl?: string;
+        startDatetime?: string;
+        endDatetime?: string;
+        startDateTime?: string;
+        endDateTime?: string;
+        _key?: string;
+        _id?: string;
+        _rev?: string;
+    }>>([]);
+    const [loading, setLoading] = useState(true);
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [startTime, setStartTime] = useState("09:00");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        const todayDate = startOfToday();
+        setToday(todayDate);
+        setSelectedDay(todayDate);
+        setCurrentMonth(format(todayDate, "MMM-yyyy"));
+        setIsHydrated(true);
+    }, []);
+
+    const firstDayCurrentMonth = today && currentMonth ? parse(currentMonth, "MMM-yyyy", new Date()) : new Date();
+
+    const handleRefresh = () => {
+        setRefreshKey((prev) => prev + 1);
+    };
+
+    const handleAddCleaning = async () => {
+        if (!selectedDay) return;
+        
+        try {
+            setIsSubmitting(true);
+            const startDateTime = new Date(selectedDay);
+            const [startHour, startMinute] = startTime.split(":");
+            startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
+
+            const endDateTime = new Date(startDateTime);
+            endDateTime.setHours(endDateTime.getHours() + 2);
+
+            const response = await fetch("/api/cleaning", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    startDateTime: startDateTime.toISOString(),
+                    endDateTime: endDateTime.toISOString(),
+                }),
+            });
+
+            if (response.ok) {
+                setShowAddForm(false);
+                setStartTime("09:00");
+                handleRefresh();
+            } else {
+                alert("Failed to add cleaning appointment");
+            }
+        } catch (error) {
+            console.error("Failed to add cleaning:", error);
+            alert("Error adding cleaning appointment");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    useEffect(() => {
+        const fetchCleaningDates = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch("/api/cleaning");
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("=== FETCHED CLEANING DATA ===");
+                    console.log("Raw data:", data);
+                    console.log("Total appointments:", data.length);
+                    data.forEach((appointment: any, index: number) => {
+                        console.log(`\n--- Appointment ${index + 1} ---`);
+                        console.log("Full object:", appointment);
+                        console.log("Start DateTime:", appointment.startDateTime);
+                        console.log("End DateTime:", appointment.endDateTime    );
+                        console.log("ID:", appointment.id || appointment._key);
+                    });
+                    console.log("=== END FETCH ===\n");
+                    setCleaningDates(data);
+                } else {
+                    console.error("Failed to fetch cleaning dates, status:", response.status);
+                }
+            } catch (error) {
+                console.error("Failed to fetch cleaning dates:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        if (isHydrated) {
+            fetchCleaningDates();
+        }
+    }, [refreshKey, isHydrated]);
 
     const days = eachDayOfInterval({
         start: firstDayCurrentMonth,
@@ -75,9 +155,32 @@ export default function Calendar() {
         setCurrentMonth(format(firstDayNextMonth, "MMM-yyyy"));
     }
 
-    const selectedDayCleaningDates = cleaningDates.filter((cleaningDate) =>
-        isSameDay(parseISO(cleaningDate.startDatetime), selectedDay)
-    );
+    const selectedDayCleaningDates = selectedDay ? cleaningDates.filter((cleaningDate) => {
+        const startDt = cleaningDate.startDatetime || cleaningDate.startDateTime;
+        return startDt && isSameDay(parseISO(startDt), selectedDay);
+    }) : [];
+
+    // Samo da vidim da li radi sve
+    useEffect(() => {
+        if (selectedDay) {
+            console.log("\n=== SELECTED DAY DEBUG ===");
+            console.log("Selected day:", format(selectedDay, "yyyy-MM-dd EEEE"));
+            console.log("All cleaning dates:", cleaningDates);
+            console.log("Matching appointments for selected day:", selectedDayCleaningDates);
+            cleaningDates.forEach((appointment) => {
+                const startDt = appointment.startDatetime || appointment.startDateTime;
+                if (startDt) {
+                    const appointmentDate = parseISO(startDt);
+                    console.log(`  - ${format(appointmentDate, "yyyy-MM-dd")} - Matches: ${isSameDay(appointmentDate, selectedDay)}`);
+                }
+            });
+            console.log("=== END DEBUG ===\n");
+        }
+    }, [selectedDay, cleaningDates]);
+
+    if (!isHydrated || !today) {
+        return <div className="p-8"></div>; 
+    }
 
     return (
         <div className="md:grid md:grid-cols-2 md:divide-x md:divide-gray-200">
@@ -127,24 +230,25 @@ export default function Calendar() {
                                 type="button"
                                 onClick={() => setSelectedDay(day)}
                                 className={classNames(
-                                    isEqual(day, selectedDay) && "text-white",
-                                    !isEqual(day, selectedDay) &&
+                                    selectedDay && isEqual(day, selectedDay) && "text-white",
+                                    selectedDay && !isEqual(day, selectedDay) &&
                                     isToday(day) &&
                                     "text-green-700",
-                                    !isEqual(day, selectedDay) &&
+                                    selectedDay && !isEqual(day, selectedDay) &&
                                     !isToday(day) &&
                                     isSameMonth(day, firstDayCurrentMonth) &&
                                     "text-gray-900",
-                                    !isEqual(day, selectedDay) &&
+                                    selectedDay && !isEqual(day, selectedDay) &&
                                     !isToday(day) &&
                                     !isSameMonth(day, firstDayCurrentMonth) &&
                                     "text-gray-400",
-                                    isEqual(day, selectedDay) && isToday(day) && "bg-green-300",
+                                    selectedDay && isEqual(day, selectedDay) && isToday(day) && "bg-green-300",
+                                    selectedDay &&
                                     isEqual(day, selectedDay) &&
                                     !isToday(day) &&
                                     "bg-gray-900",
-                                    !isEqual(day, selectedDay) && "hover:bg-gray-200",
-                                    (isEqual(day, selectedDay) || isToday(day)) && "font-semibold",
+                                    selectedDay && !isEqual(day, selectedDay) && "hover:bg-gray-200",
+                                    selectedDay && (isEqual(day, selectedDay) || isToday(day)) && "font-semibold",
                                     "mx-auto flex h-8 w-8 items-center justify-center rounded-full"
                                 )}
                             >
@@ -154,28 +258,31 @@ export default function Calendar() {
                             </button>
 
                             {/* Da se zna koji dan ima događaj */}
-                            <div className="w-1 h-1 mx-auto mt-1">
+                            <div className="flex justify-center mt-1">
                                 {cleaningDates.some((cleaningDate) =>
-                                    isSameDay(parseISO(cleaningDate.startDatetime), day)
-                                ) && <div className="w-1 h-1 rounded-full bg-sky-500"></div>}
+                                    cleaningDate.startDatetime && isSameDay(parseISO(cleaningDate.startDatetime), day)
+                                ) && <div className="w-2 h-2 rounded-full bg-blue-500"></div>}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            {/* raspored da izabran dan */}
+            {/* raspord da izabran dan */}
             <section className="mt-12 md:mt-0 md:pl-14">
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <h2 className="font-semibold text-gray-900">
                             Cleaning Schedule for{" "}
-                            <time dateTime={format(selectedDay, "yyyy-MM-dd")}>
-                                {format(selectedDay, "MMM dd, yyyy")}
-                            </time>
+                            {selectedDay && (
+                                <time dateTime={format(selectedDay, "yyyy-MM-dd")}>
+                                    {format(selectedDay, "MMM dd, yyyy")}
+                                </time>
+                            )}
                         </h2>
                         <button
                             type="button"
+                            onClick={() => setShowAddForm(true)}
                             className="inline-flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 active:scale-90"
                             title="Add cleaning appointment"
                         >
@@ -185,14 +292,110 @@ export default function Calendar() {
                 </div>
                 <ol className="mt-4 space-y-1 text-sm leading-6 text-gray-500">
                     {selectedDayCleaningDates.length > 0 ? (
-                        selectedDayCleaningDates.map((cleaningDate) => (
-                            <CleaningDate cleaningDate={cleaningDate} key={cleaningDate.id} />
-                        ))
+                        selectedDayCleaningDates.map((cleaningDate) => {
+                            const startDt = cleaningDate.startDatetime || cleaningDate.startDateTime;
+                            const endDt = cleaningDate.endDatetime || cleaningDate.endDateTime;
+                            const startDateTime = startDt ? parseISO(startDt) : new Date();
+                            const endDateTime = endDt ? parseISO(endDt) : new Date();
+                            const id = cleaningDate.id || cleaningDate._key;
+                            
+                            return (
+                                <li key={id} className="flex items-center px-4 py-2 space-x-4 group rounded-xl focus-within:bg-gray-100 hover:bg-gray-100 bg-blue-50">
+                                    {cleaningDate.imageUrl && (
+                                        <img
+                                            src={cleaningDate.imageUrl}
+                                            alt={cleaningDate.name || "Cleaning"}
+                                            className="flex-none w-10 h-10 rounded-full"
+                                        />
+                                    )}
+                                    <div className="flex-auto">
+                                        <p className="text-gray-900 font-medium">{cleaningDate.name || "Cleaning Appointment"}</p>
+                                        <p className="mt-0.5 text-gray-600">
+                                            <time dateTime={startDt}>
+                                                {format(startDateTime, "h:mm a")}
+                                            </time>
+                                            {" - "}
+                                            <time dateTime={endDt}>
+                                                {format(endDateTime, "h:mm a")}
+                                            </time>
+                                        </p>
+                                    </div>
+                                </li>
+                            );
+                        })
                     ) : (
-                        <p>No cleaning scheduled for today.</p>
+                        <p className="text-gray-400">No cleaning scheduled for today.</p>
                     )}
                 </ol>
             </section>
+
+            {showAddForm && selectedDay && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] animate-in fade-in zoom-in">
+                        {/* Scrollable content */}
+                        <div className="overflow-y-auto flex-1 p-8">
+                            <div className="mb-6">
+                                <h3 className="text-2xl font-bold text-gray-900">
+                                    Schedule Cleaning
+                                </h3>
+                                <p className="text-gray-500 mt-2">
+                                    {format(selectedDay, "EEEE, MMMM dd, yyyy")}
+                                </p>
+                            </div>
+
+                            <div className="mb-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                    Select Start Time
+                                </label>
+                                <input
+                                    type="time"
+                                    value={startTime}
+                                    onChange={(e) => setStartTime(e.target.value)}
+                                    className="w-full px-4 py-3 text-lg text-gray-900 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-700"
+                                />
+                                <p className="text-sm text-gray-500 mt-3">
+                                    Duration: 2 hours (ends at{" "}
+                                    <span className="font-semibold text-gray-700">
+                                        {(() => {
+                                            const [hours, minutes] = startTime.split(":");
+                                            const endHour = (parseInt(hours) + 2) % 24;
+                                            return `${endHour.toString().padStart(2, "0")}:${minutes}`;
+                                        })()}
+                                    </span>
+                                    )
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Fixed buttons */}
+                        <div className="flex gap-3 p-8 pt-4 border-t border-gray-200 bg-white">
+                            <button
+                                type="button"
+                                onClick={() => setShowAddForm(false)}
+                                disabled={isSubmitting}
+                                className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleAddCleaning}
+                                disabled={isSubmitting}
+                                className="flex-1 px-4 py-3 text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                        Booking...
+                                    </>
+                                ) : (
+                                    "Book Cleaning"
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

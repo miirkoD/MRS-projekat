@@ -8,6 +8,6 @@ const db = new Database({
   },
 });
 
-const database = db.database(process.env.ARANGO_DB || "calendar");
+const database = db.database(process.env.ARANGO_DB || "cleaning_app");
 
 export default database;
