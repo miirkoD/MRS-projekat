@@ -13,9 +13,10 @@
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/react-table": "^8.21.3",
+    "arangojs": "^10.2.1",
     "date-fns": "^4.1.0",
     "formik": "^2.4.9",
-    "next": "16.0.5",
+    "next": "^16.1.4",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
