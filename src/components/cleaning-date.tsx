@@ -14,72 +14,106 @@ export default function CleaningDate({
   onRefresh,
 }: {
   cleaningDate: {
-    id: number;
-    name: string;
-    imageUrl: string;
+    _key?: string;
+    _id?: string;
+    id?: string;
+    name?: string;
+    imageUrl?: string;
     startDatetime: string;
     endDatetime: string;
+    cleanerId?: string;
+    userId?: string;
+    subscriptionId?: string;
+    status?: string;
   };
   onRefresh: () => void;
 }) {
   const startDateTime = parseISO(cleaningDate.startDatetime);
   const endDateTime = parseISO(cleaningDate.endDatetime);
+  const appointmentId = cleaningDate._key || cleaningDate.id;
 
   async function handleCancel() {
-    await fetch(`/api/cleaning/${cleaningDate.id}`, {
-      method: "DELETE",
-    });
-    onRefresh();
-  }
-
-  async function handleEdit(offsetMinutes:number) {
-    const startDateTime=parseISO(cleaningDate.startDatetime);
-    const endDateTime=parseISO(cleaningDate.endDatetime);
-
-    const newStart=new Date(startDateTime.getTime()+offsetMinutes*60000);
-    const newEnd=new Date(endDateTime.getTime()+offsetMinutes*60000);
-
-    const sameDay=
-      newStart.getDate()===startDateTime.getDate() &&
-      newStart.getMonth()===startDateTime.getMonth() &&
-      newStart.getFullYear()===startDateTime.getFullYear() &&
-      newEnd.getDate()===endDateTime.getDate() &&
-      newEnd.getMonth()===endDateTime.getMonth() &&
-      newEnd.getFullYear()===endDateTime.getFullYear();
-
-    if(!sameDay){
-      alert("Izmena vremena mora ostati unutar istog dana.");
+    if (!appointmentId) {
+      alert("Unable to cancel: appointment ID not found");
       return;
     }
+    try {
+      const response = await fetch(`/api/cleaning/${appointmentId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to cancel appointment");
+      }
+      onRefresh();
+    } catch (error) {
+      console.error("Error canceling appointment:", error);
+      alert("Failed to cancel appointment");
+    }
+  }
 
-    await fetch(`/api/cleaning/${cleaningDate.id}`,{
-      method:"PUT",
-      headers:{ "Content-Type":"application/json"},
-      body:JSON.stringify({
-        startDateTime:newStart.toISOString(),
-        endDateTime:newEnd.toISOString(),
-      }),
-    });
-    onRefresh();
+  async function handleEdit(offsetMinutes: number) {
+    if (!appointmentId) {
+      alert("Unable to edit: appointment ID not found");
+      return;
+    }
+    try {
+      const startDateTime = parseISO(cleaningDate.startDatetime);
+      const endDateTime = parseISO(cleaningDate.endDatetime);
+
+      const newStart = new Date(startDateTime.getTime() + offsetMinutes * 60000);
+      const newEnd = new Date(endDateTime.getTime() + offsetMinutes * 60000);
+
+      const sameDay =
+        newStart.getDate() === startDateTime.getDate() &&
+        newStart.getMonth() === startDateTime.getMonth() &&
+        newStart.getFullYear() === startDateTime.getFullYear() &&
+        newEnd.getDate() === endDateTime.getDate() &&
+        newEnd.getMonth() === endDateTime.getMonth() &&
+        newEnd.getFullYear() === endDateTime.getFullYear();
+
+      if (!sameDay) {
+        alert("Izmena vremena mora ostati unutar istog dana.");
+        return;
+      }
+
+      const response = await fetch(`/api/cleaning/${appointmentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDatetime: newStart.toISOString(),
+          endDatetime: newEnd.toISOString(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update appointment");
+      }
+      onRefresh();
+    } catch (error) {
+      console.error("Error editing appointment:", error);
+      alert("Failed to update appointment");
+    }
   }
 
   return (
     <li className="flex items-center px-4 py-2 space-x-4 group rounded-xl focus-within:bg-gray-100 hover:bg-gray-100">
-      <img
-        src={cleaningDate.imageUrl}
-        alt={cleaningDate.name}
-        className="flex-none w-10 h-10 rounded-full"
-      />
+      {cleaningDate.imageUrl && (
+        <img
+          src={cleaningDate.imageUrl}
+          alt={cleaningDate.name || "Cleaner"}
+          className="flex-none w-10 h-10 rounded-full"
+        />
+      )}
 
       <div className="flex-auto">
-        <p className="text-gray-900">{cleaningDate.name}</p>
+        <p className="text-gray-900">{cleaningDate.name || `Appointment (${cleaningDate._key || cleaningDate.id})`}</p>
         <p className="mt-0.5">
           <time dateTime={cleaningDate.startDatetime}>
-            {format(startDateTime, "h:mm a")}
+            {format(startDateTime, "HH:mm")}
           </time>{" "}
           -{" "}
           <time dateTime={cleaningDate.endDatetime}>
-            {format(endDateTime, "h:mm a")}
+            {format(endDateTime, "HH:mm")}
           </time>
         </p>
       </div>
