@@ -45,8 +45,6 @@ export default function Calendar() {
         imageUrl?: string;
         startDatetime?: string;
         endDatetime?: string;
-        startDateTime?: string;
-        endDateTime?: string;
         _key?: string;
         _id?: string;
         _rev?: string;
@@ -55,14 +53,12 @@ export default function Calendar() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [startTime, setStartTime] = useState("09:00");
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isHydrated, setIsHydrated] = useState(false);
 
     useEffect(() => {
         const todayDate = startOfToday();
         setToday(todayDate);
         setSelectedDay(todayDate);
         setCurrentMonth(format(todayDate, "MMM-yyyy"));
-        setIsHydrated(true);
     }, []);
 
     const firstDayCurrentMonth = today && currentMonth ? parse(currentMonth, "MMM-yyyy", new Date()) : new Date();
@@ -120,8 +116,8 @@ export default function Calendar() {
                     data.forEach((appointment: any, index: number) => {
                         console.log(`\n--- Appointment ${index + 1} ---`);
                         console.log("Full object:", appointment);
-                        console.log("Start DateTime:", appointment.startDateTime);
-                        console.log("End DateTime:", appointment.endDateTime    );
+                        console.log("Start Datetime:", appointment.startDatetime);
+                        console.log("End Datetime:", appointment.endDatetime);
                         console.log("ID:", appointment.id || appointment._key);
                     });
                     console.log("=== END FETCH ===\n");
@@ -135,10 +131,8 @@ export default function Calendar() {
                 setLoading(false);
             }
         };
-        if (isHydrated) {
-            fetchCleaningDates();
-        }
-    }, [refreshKey, isHydrated]);
+        fetchCleaningDates();
+    }, [refreshKey]);
 
     const days = eachDayOfInterval({
         start: firstDayCurrentMonth,
@@ -156,7 +150,7 @@ export default function Calendar() {
     }
 
     const selectedDayCleaningDates = selectedDay ? cleaningDates.filter((cleaningDate) => {
-        const startDt = cleaningDate.startDatetime || cleaningDate.startDateTime;
+        const startDt = cleaningDate.startDatetime;
         return startDt && isSameDay(parseISO(startDt), selectedDay);
     }) : [];
 
@@ -168,7 +162,7 @@ export default function Calendar() {
             console.log("All cleaning dates:", cleaningDates);
             console.log("Matching appointments for selected day:", selectedDayCleaningDates);
             cleaningDates.forEach((appointment) => {
-                const startDt = appointment.startDatetime || appointment.startDateTime;
+                const startDt = appointment.startDatetime;
                 if (startDt) {
                     const appointmentDate = parseISO(startDt);
                     console.log(`  - ${format(appointmentDate, "yyyy-MM-dd")} - Matches: ${isSameDay(appointmentDate, selectedDay)}`);
@@ -178,7 +172,7 @@ export default function Calendar() {
         }
     }, [selectedDay, cleaningDates]);
 
-    if (!isHydrated || !today) {
+    if (!today) {
         return <div className="p-8"></div>; 
     }
 
@@ -273,7 +267,7 @@ export default function Calendar() {
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
                         <h2 className="font-semibold text-gray-900">
-                            Cleaning Schedule for{" "}
+                            Raspored čišćenja za{" "}
                             {selectedDay && (
                                 <time dateTime={format(selectedDay, "yyyy-MM-dd")}>
                                     {format(selectedDay, "MMM dd, yyyy")}
@@ -293,8 +287,8 @@ export default function Calendar() {
                 <ol className="mt-4 space-y-1 text-sm leading-6 text-gray-500">
                     {selectedDayCleaningDates.length > 0 ? (
                         selectedDayCleaningDates.map((cleaningDate) => {
-                            const startDt = cleaningDate.startDatetime || cleaningDate.startDateTime;
-                            const endDt = cleaningDate.endDatetime || cleaningDate.endDateTime;
+                            const startDt = cleaningDate.startDatetime;
+                            const endDt = cleaningDate.endDatetime;
                             const startDateTime = startDt ? parseISO(startDt) : new Date();
                             const endDateTime = endDt ? parseISO(endDt) : new Date();
                             const id = cleaningDate.id || cleaningDate._key;
@@ -312,11 +306,11 @@ export default function Calendar() {
                                         <p className="text-gray-900 font-medium">{cleaningDate.name || "Cleaning Appointment"}</p>
                                         <p className="mt-0.5 text-gray-600">
                                             <time dateTime={startDt}>
-                                                {format(startDateTime, "h:mm a")}
+                                                {format(startDateTime, "HH:mm")}
                                             </time>
                                             {" - "}
                                             <time dateTime={endDt}>
-                                                {format(endDateTime, "h:mm a")}
+                                                {format(endDateTime, "HH:mm")}
                                             </time>
                                         </p>
                                     </div>
@@ -324,7 +318,7 @@ export default function Calendar() {
                             );
                         })
                     ) : (
-                        <p className="text-gray-400">No cleaning scheduled for today.</p>
+                        <p className="text-gray-400">Trenutno nema čišćenja za ovaj dan.</p>
                     )}
                 </ol>
             </section>
@@ -336,7 +330,7 @@ export default function Calendar() {
                         <div className="overflow-y-auto flex-1 p-8">
                             <div className="mb-6">
                                 <h3 className="text-2xl font-bold text-gray-900">
-                                    Schedule Cleaning
+                                    Zakazivanje čišćenja
                                 </h3>
                                 <p className="text-gray-500 mt-2">
                                     {format(selectedDay, "EEEE, MMMM dd, yyyy")}
@@ -345,16 +339,46 @@ export default function Calendar() {
 
                             <div className="mb-6">
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">
-                                    Select Start Time
+                                    Odaberite vreme početka čišćenja
                                 </label>
-                                <input
-                                    type="time"
-                                    value={startTime}
-                                    onChange={(e) => setStartTime(e.target.value)}
-                                    className="w-full px-4 py-3 text-lg text-gray-900 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all placeholder-gray-700"
-                                />
-                                <p className="text-sm text-gray-500 mt-3">
-                                    Duration: 2 hours (ends at{" "}
+                                <div className="flex gap-2 items-center">
+                                    <div className="flex-1">
+                                        <label className="block text-xs text-gray-600 mb-1">Sat</label>
+                                        <input
+                                            type="number"
+                                            min="8"
+                                            max="19"
+                                            value={startTime.split(":")[0]}
+                                            onChange={(e) => {
+                                                const hour = e.target.value.padStart(2, "0");
+                                                const minutes = startTime.split(":")[1];
+                                                setStartTime(`${hour}:${minutes}`);
+                                            }}
+                                            className="w-full px-3 py-3 text-lg text-center text-gray-900 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                                        />
+                                    </div>
+                                    <div className="flex items-center text-2xl text-gray-400 mt-5">:</div>
+                                    <div className="flex-1">
+                                        <label className="block text-xs text-gray-600 mb-1">Minut</label>
+                                        <select
+                                            value={startTime.split(":")[1]}
+                                            onChange={(e) => {
+                                                const hour = startTime.split(":")[0];
+                                                const minutes = e.target.value;
+                                                setStartTime(`${hour}:${minutes}`);
+                                            }}
+                                            className="w-full px-3 py-3 text-lg text-center text-gray-900 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                                        >
+                                            <option value="00">00</option>
+                                            <option value="30">30</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-gray-600 mt-3">
+                                    <span className="font-semibold">Početak:</span> {startTime}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Trajanje čišćenja: 2 sata (završava u{" "}
                                     <span className="font-semibold text-gray-700">
                                         {(() => {
                                             const [hours, minutes] = startTime.split(":");
@@ -375,7 +399,7 @@ export default function Calendar() {
                                 disabled={isSubmitting}
                                 className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors font-medium disabled:opacity-50"
                             >
-                                Cancel
+                                Otkaži
                             </button>
                             <button
                                 type="button"
