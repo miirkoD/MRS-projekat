@@ -7,6 +7,7 @@ export default function MaidSelectionPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <div className="sticky top-0 z-50">
         <NavBar />
+        
       </div>
       
       <main className="flex-grow">

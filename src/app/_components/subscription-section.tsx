@@ -3,7 +3,7 @@ import SubscriptionButton from '@/components/subscription-button';
 import React from 'react';
 
 const popularCard = [
-  '3x čišćenje nedeljno',
+  '1x čišćenje nedeljno',
   'Sva osnovna čišćenja',
   'Pranje sudova i sređivanje',
   'Čišćenje terase/balkona',
@@ -15,7 +15,7 @@ const weekly = [
   'Fleksibilno zakazivanje',
 ];
 const intensive = [
-  '5x čišćenje nedeljno',
+  '1x čišćenje nedeljno',
   'Sve iz Trostrukog plana',
   'Dubinsko čišćenje mesečno',
 ];
@@ -96,11 +96,11 @@ const SubscriptionSection = () => {
         </div>
         <div className="h-[455px] w-[347px] shadow-xl border  rounded-md">
           <div className="text-gray-900 flex flex-col items-center text-center justify-center bg-white h-[188px] rounded-t-md shadow-md">
-            <span className="text-[30px] text-gray-500">Nedeljni</span>
+            <span className="text-[30px] text-gray-500">Intenzivni</span>
             <div className="flex flex-row items-center text-center justify-center gap-[12px] ">
               <span className="text-[36px] text-[#036A5F]">$</span>
               <span className="  text-[#036A5F]  text-6xl leading-none font-extrabold tracking-tight">
-                79
+                349
               </span>
               <span className="text-[24px] text-gray-500">/mesečno</span>
             </div>

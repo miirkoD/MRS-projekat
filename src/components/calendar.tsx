@@ -39,6 +39,7 @@ export default function Calendar() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [cleanerId, setCleanerId] = useState<string>('');
   const [cleaningDates, setCleaningDates] = useState<
     Array<{
       id?: string;
@@ -49,6 +50,10 @@ export default function Calendar() {
       _key?: string;
       _id?: string;
       _rev?: string;
+      user?: {
+        firstName?: string;
+        lastName?: string;
+      };
     }>
   >([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +66,7 @@ export default function Calendar() {
     setToday(todayDate);
     setSelectedDay(todayDate);
     setCurrentMonth(format(todayDate, 'MMM-yyyy'));
+    setCleanerId(localStorage.getItem('cleaner') || '');
   }, []);
 
   const firstDayCurrentMonth =
@@ -88,9 +94,10 @@ export default function Calendar() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startDateTime: startDateTime.toISOString(),
-          endDateTime: endDateTime.toISOString(),
+          startDateTime: format(startDateTime, "yyyy-MM-dd'T'HH:mm"),
+          endDateTime: format(endDateTime, "yyyy-MM-dd'T'HH:mm"),
           userId: `users/${user._key}`,
+          cleanerId
         }),
       });
 
@@ -113,20 +120,15 @@ export default function Calendar() {
     const fetchCleaningDates = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/cleaning');
+        const url=cleanerId ? `/api/cleaning?cleaner=${cleanerId}` : '/api/cleaning';
+
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
 
-          data.forEach((appointment: any, index: number) => {
-            console.log(`\n--- Appointment ${index + 1} ---`);
-          });
-
           setCleaningDates(data);
         } else {
-          console.error(
-            'Failed to fetch cleaning dates, status:',
-            response.status,
-          );
+          console.error('Failed to fetch cleaning dates, status:', response.status);
         }
       } catch (error) {
         console.error('Failed to fetch cleaning dates:', error);
@@ -135,7 +137,7 @@ export default function Calendar() {
       }
     };
     fetchCleaningDates();
-  }, [refreshKey]);
+  }, [refreshKey,cleanerId]);
 
   const days = eachDayOfInterval({
     start: firstDayCurrentMonth,
@@ -159,7 +161,6 @@ export default function Calendar() {
       })
     : [];
 
-  // Samo da vidim da li radi sve
   useEffect(() => {
     if (selectedDay) {
       cleaningDates.forEach((appointment) => {
@@ -318,7 +319,7 @@ export default function Calendar() {
                   )}
                   <div className="flex-auto">
                     <p className="text-gray-900 font-medium">
-                      {cleaningDate.name || 'Cleaning Appointment'}
+                      {cleaningDate.user?.firstName} {cleaningDate.user?.lastName}
                     </p>
                     <p className="mt-0.5 text-gray-600">
                       <time dateTime={startDt}>
@@ -427,7 +428,7 @@ export default function Calendar() {
                 type="button"
                 onClick={handleAddCleaning}
                 disabled={isSubmitting}
-                className="flex-1 px-4 py-3 text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
+                className="flex-1 px-4 py-3 text-gray-700 bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 {isSubmitting ? (
                   <>

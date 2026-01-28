@@ -49,7 +49,7 @@ const Page = () => {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
-        router.push('/date-selection');
+        router.push('/maid-selection');
       } else {
         const data = await response.json();
         setError(data.error || 'Login failed');
