@@ -19,6 +19,7 @@ import {
 import ChevronLeftIcon from '@/components/icons/chevron-left-icon';
 import ChevronRightIcon from '@/components/icons/chevron-right-icon';
 import CleaningDate from '@/components/cleaning-date';
+import Image from 'next/image';
 
 function classNames(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -97,7 +98,7 @@ export default function Calendar() {
           startDateTime: format(startDateTime, "yyyy-MM-dd'T'HH:mm"),
           endDateTime: format(endDateTime, "yyyy-MM-dd'T'HH:mm"),
           userId: `users/${user._key}`,
-          cleanerId
+          cleanerId,
         }),
       });
 
@@ -120,7 +121,9 @@ export default function Calendar() {
     const fetchCleaningDates = async () => {
       try {
         setLoading(true);
-        const url=cleanerId ? `/api/cleaning?cleaner=${cleanerId}` : '/api/cleaning';
+        const url = cleanerId
+          ? `/api/cleaning?cleaner=${cleanerId}`
+          : '/api/cleaning';
 
         const response = await fetch(url);
         if (response.ok) {
@@ -128,7 +131,10 @@ export default function Calendar() {
 
           setCleaningDates(data);
         } else {
-          console.error('Failed to fetch cleaning dates, status:', response.status);
+          console.error(
+            'Failed to fetch cleaning dates, status:',
+            response.status,
+          );
         }
       } catch (error) {
         console.error('Failed to fetch cleaning dates:', error);
@@ -137,7 +143,7 @@ export default function Calendar() {
       }
     };
     fetchCleaningDates();
-  }, [refreshKey,cleanerId]);
+  }, [refreshKey, cleanerId]);
 
   const days = eachDayOfInterval({
     start: firstDayCurrentMonth,
@@ -311,7 +317,7 @@ export default function Calendar() {
                   className="flex items-center px-4 py-2 space-x-4 group rounded-xl focus-within:bg-gray-100 hover:bg-gray-100 bg-blue-50"
                 >
                   {cleaningDate.imageUrl && (
-                    <img
+                    <Image
                       src={cleaningDate.imageUrl}
                       alt={cleaningDate.name || 'Cleaning'}
                       className="flex-none w-10 h-10 rounded-full"
@@ -319,7 +325,8 @@ export default function Calendar() {
                   )}
                   <div className="flex-auto">
                     <p className="text-gray-900 font-medium">
-                      {cleaningDate.user?.firstName} {cleaningDate.user?.lastName}
+                      {cleaningDate.user?.firstName}{' '}
+                      {cleaningDate.user?.lastName}
                     </p>
                     <p className="mt-0.5 text-gray-600">
                       <time dateTime={startDt}>

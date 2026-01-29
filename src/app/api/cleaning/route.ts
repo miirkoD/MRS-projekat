@@ -6,15 +6,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const cleanerId = searchParams.get('cleaner');
 
-    let query = `FOR a IN appointments
+    const query = `FOR a IN appointments
     ${cleanerId ? 'FILTER a.cleanerId == @cleanerId' : ''}
     LET u = DOCUMENT("users", a.userId)
     RETURN MERGE(a, {user: {firstName: u.firstName, lastName: u.lastName}})`;
-    
-    let bindVars = cleanerId ? { cleanerId } : {};
+
+    const bindVars = cleanerId ? { cleanerId } : {};
     const cursor = await database.query(query, bindVars);
     const appointments = await cursor.all();
-    
+
     return NextResponse.json(appointments);
   } catch (error) {
     console.error('Failed to fetch appointments:', error);
@@ -30,14 +30,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const collection = database.collection('appointments');
 
-    // Normalize the datetime fields
     const appointment = {
       ...body,
       startDatetime: body.startDatetime || body.startDateTime,
       endDatetime: body.endDatetime || body.endDateTime,
     };
 
-    // Remove duplicate fields
     delete appointment.startDateTime;
     delete appointment.endDateTime;
 
@@ -51,10 +49,10 @@ export async function POST(req: Request) {
     let nextKeyNumber = 1;
 
     if (lastKey) {
-      const num=parseInt(lastKey.replace("appt",""),10);
+      const num = parseInt(lastKey.replace('appt', ''), 10);
       nextKeyNumber = num + 1;
     }
-    appointment._key= `appt${String(nextKeyNumber).padStart(3,"0")}`;
+    appointment._key = `appt${String(nextKeyNumber).padStart(3, '0')}`;
 
     const result = await collection.save(appointment, { returnNew: true });
     return NextResponse.json(result.new, { status: 201 });

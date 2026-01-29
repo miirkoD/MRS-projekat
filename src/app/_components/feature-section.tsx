@@ -1,36 +1,36 @@
-import CalendarIcon from "@/assets/calendar-icon";
-import CleaningSvg from "@/assets/cleaning-svg";
-import RepeatIcon from "@/assets/repeat-icon";
-import StarIcon from "@/assets/star-icon";
-import FeatureCards from "@/components/feature-cards";
-import FeatureHeader from "@/components/feature-header";
-import React from "react";
+import CalendarIcon from '@/assets/calendar-icon';
+import CleaningSvg from '@/assets/cleaning-svg';
+import RepeatIcon from '@/assets/repeat-icon';
+import StarIcon from '@/assets/star-icon';
+import FeatureCards from '@/components/feature-cards';
+import FeatureHeader from '@/components/feature-header';
+import React from 'react';
 
 const firstCol = [
   {
     icon: <CleaningSvg />,
-    title: "Izaberi plan",
-    description: "Odaberite plan koji odgovara vašem ritmu i potrebama",
+    title: 'Izaberi plan',
+    description: 'Odaberite plan koji odgovara vašem ritmu i potrebama',
   },
   {
     icon: <StarIcon />,
-    title: "Uživajte u Čistoći",
+    title: 'Uživajte u Čistoći',
     description:
-      "Naš profesionalni tim dolazi i brine se o svemu. Vi samo uživate u čistom domu.",
+      'Naš profesionalni tim dolazi i brine se o svemu. Vi samo uživate u čistom domu.',
   },
 ];
 const secondCol = [
   {
     icon: <CalendarIcon />,
-    title: "Zakažite Termin",
+    title: 'Zakažite Termin',
     description:
-      "Online zakazivanje u nekoliko klikova. Fleksibilno prilagođavamo termine vašem rasporedu.",
+      'Online zakazivanje u nekoliko klikova. Fleksibilno prilagođavamo termine vašem rasporedu.',
   },
   {
     icon: <RepeatIcon />,
-    title: "Redovno Održavanje",
+    title: 'Redovno Održavanje',
     description:
-      "Automatsko zakazivanje prema vašoj pretplati. Bez brige, bez obaveza.",
+      'Automatsko zakazivanje prema vašoj pretplati. Bez brige, bez obaveza.',
   },
 ];
 const FeatureSection = () => {

@@ -1,12 +1,13 @@
-"use client";
+'use client';
 
-import { Menu, Transition } from "@headlessui/react";
-import { Fragment } from "react";
-import { format, parseISO } from "date-fns";
-import DotsVerticalIcon from "@/components/icons/dots-vertical-icon";
+import { Menu, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
+import { format, parseISO } from 'date-fns';
+import DotsVerticalIcon from '@/components/icons/dots-vertical-icon';
+import Image from 'next/image';
 
 function classNames(...classes: (string | undefined | false | null)[]): string {
-  return classes.filter(Boolean).join(" ");
+  return classes.filter(Boolean).join(' ');
 }
 
 export default function CleaningDate({
@@ -34,33 +35,35 @@ export default function CleaningDate({
 
   async function handleCancel() {
     if (!appointmentId) {
-      alert("Unable to cancel: appointment ID not found");
+      alert('Unable to cancel: appointment ID not found');
       return;
     }
     try {
       const response = await fetch(`/api/cleaning/${appointmentId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       if (!response.ok) {
-        throw new Error("Failed to cancel appointment");
+        throw new Error('Failed to cancel appointment');
       }
       onRefresh();
     } catch (error) {
-      console.error("Error canceling appointment:", error);
-      alert("Failed to cancel appointment");
+      console.error('Error canceling appointment:', error);
+      alert('Failed to cancel appointment');
     }
   }
 
   async function handleEdit(offsetMinutes: number) {
     if (!appointmentId) {
-      alert("Unable to edit: appointment ID not found");
+      alert('Unable to edit: appointment ID not found');
       return;
     }
     try {
       const startDateTime = parseISO(cleaningDate.startDatetime);
       const endDateTime = parseISO(cleaningDate.endDatetime);
 
-      const newStart = new Date(startDateTime.getTime() + offsetMinutes * 60000);
+      const newStart = new Date(
+        startDateTime.getTime() + offsetMinutes * 60000,
+      );
       const newEnd = new Date(endDateTime.getTime() + offsetMinutes * 60000);
 
       const sameDay =
@@ -72,13 +75,13 @@ export default function CleaningDate({
         newEnd.getFullYear() === endDateTime.getFullYear();
 
       if (!sameDay) {
-        alert("Izmena vremena mora ostati unutar istog dana.");
+        alert('Izmena vremena mora ostati unutar istog dana.');
         return;
       }
 
       const response = await fetch(`/api/cleaning/${appointmentId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           startDatetime: newStart.toISOString(),
           endDatetime: newEnd.toISOString(),
@@ -86,34 +89,37 @@ export default function CleaningDate({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update appointment");
+        throw new Error('Failed to update appointment');
       }
       onRefresh();
     } catch (error) {
-      console.error("Error editing appointment:", error);
-      alert("Failed to update appointment");
+      console.error('Error editing appointment:', error);
+      alert('Failed to update appointment');
     }
   }
 
   return (
     <li className="flex items-center px-4 py-2 space-x-4 group rounded-xl focus-within:bg-gray-100 hover:bg-gray-100">
-      {cleaningDate.imageUrl && (
-        <img
+      {/* {cleaningDate.imageUrl && (
+        <Image
           src={cleaningDate.imageUrl}
-          alt={cleaningDate.name || "Cleaner"}
+          alt={cleaningDate.name || 'Cleaner'}
           className="flex-none w-10 h-10 rounded-full"
         />
-      )}
+      )} */}
 
       <div className="flex-auto">
-        <p className="text-gray-900">{cleaningDate.name || `Appointment (${cleaningDate._key || cleaningDate.id})`}</p>
+        <p className="text-gray-900">
+          {cleaningDate.name ||
+            `Appointment (${cleaningDate._key || cleaningDate.id})`}
+        </p>
         <p className="mt-0.5">
           <time dateTime={cleaningDate.startDatetime}>
-            {format(startDateTime, "HH:mm")}
-          </time>{" "}
-          -{" "}
+            {format(startDateTime, 'HH:mm')}
+          </time>{' '}
+          -{' '}
           <time dateTime={cleaningDate.endDatetime}>
-            {format(endDateTime, "HH:mm")}
+            {format(endDateTime, 'HH:mm')}
           </time>
         </p>
       </div>
@@ -145,8 +151,8 @@ export default function CleaningDate({
                   <button
                     onClick={() => handleEdit(30)}
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "w-full text-left block px-4 py-2 text-sm"
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                      'w-full text-left block px-4 py-2 text-sm',
                     )}
                   >
                     Edit
@@ -158,8 +164,8 @@ export default function CleaningDate({
                   <button
                     onClick={handleCancel}
                     className={classNames(
-                      active ? "bg-gray-100 text-gray-900" : "text-gray-700",
-                      "w-full text-left block px-4 py-2 text-sm"
+                      active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+                      'w-full text-left block px-4 py-2 text-sm',
                     )}
                   >
                     Cancel
