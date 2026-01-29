@@ -1,11 +1,12 @@
 import database from '@/lib/arango';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const body = await req.json();
     const collection = database.collection('appointments');
 
@@ -18,7 +19,7 @@ export async function PUT(
     delete updateData.startDateTime;
     delete updateData.endDateTime;
 
-    await collection.update(params.id, updateData);
+    await collection.update(id, updateData);
     return NextResponse.json({ message: 'Updated' });
   } catch (error) {
     console.error('Failed to update appointment:', error);
@@ -30,12 +31,13 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } },
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await context.params;
     const collection = database.collection('appointments');
-    await collection.remove(params.id);
+    await collection.remove(id);
     return NextResponse.json({ message: 'Deleted' });
   } catch (error) {
     console.error('Failed to delete appointment:', error);

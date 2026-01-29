@@ -1,7 +1,7 @@
 import database from '@/lib/arango';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const cleanerId = searchParams.get('cleaner');
@@ -25,19 +25,33 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const collection = database.collection('appointments');
 
     const appointment = {
       ...body,
-      startDatetime: body.startDatetime || body.startDateTime,
-      endDatetime: body.endDatetime || body.endDateTime,
+      startDatetime: body.startDatetime,
+      endDatetime: body.endDatetime,
     };
 
-    delete appointment.startDateTime;
-    delete appointment.endDateTime;
+    const conflictQuery=  `FOR a IN appointments
+    FILTER a.cleanerId==@cleanerId
+    FILTER a.startDatetime==@startDatetime
+    RETURN a`;
+    const conflictCursor=await database.query(conflictQuery,{
+      cleanerId: appointment.cleanerId,
+      startDatetime: appointment.startDatetime
+    });
+    const conflicts=await conflictCursor.all();
+    
+    if(conflicts.length>0){
+      return NextResponse.json(
+        {error: 'Termin već postoji kod ove spremačice u izabranom vremenu. Molimo izaberite drugo vreme.'},
+        {status:409}
+      );
+    }
 
     const cursor = await database.query(`
       FOR a IN appointments
