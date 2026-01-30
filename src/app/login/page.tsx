@@ -49,7 +49,12 @@ const Page = () => {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
-        router.push('/maid-selection');
+        if (data.user.role === 'cleaner'){
+          router.push('/date-selection');
+        }
+        else{
+          router.push('/maid-selection');
+        }
       } else {
         const data = await response.json();
         setError(data.error || 'Login failed');
@@ -60,6 +65,7 @@ const Page = () => {
       setIsSubmitting(false);
     }
   };
+
   return (
     <div className="min-h-screen flex flex-col bg-white gap-0 content-center justify-center">
       <div className="flex flex-col items-center content-center justify-center gap-[32px]">

@@ -3,13 +3,17 @@ import React from 'react';
 type SubscriptionButtonProps = {
   className?: string;
   txt?: string;
+  onClick?:()=>void;
 };
 const SubscriptionButton: React.FC<SubscriptionButtonProps> = ({
   className,
   txt,
+  onClick,
 }) => {
   return (
     <button
+      type="button"
+      onClick={onClick}
       className={`w-full
         
         rounded-xl

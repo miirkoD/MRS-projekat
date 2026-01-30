@@ -1,7 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { add, eachDayOfInterval, endOfMonth, format, parse, startOfToday } from 'date-fns';
+import {
+  add,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  parse,
+  startOfToday,
+} from 'date-fns';
 
 import CalendarHeader from '@/components/calendar/calendar-header';
 import CalendarGrid from '@/components/calendar/calendar-grid';
@@ -10,6 +17,14 @@ import AddCleaningModal from '@/components/calendar/add-cleaning-modal';
 
 import { useCleaningDates } from '@/hooks/use-cleaning-dates';
 import { useRouter } from 'next/navigation';
+
+type User = {
+  _key?: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+};
+
 
 export default function Calendar() {
   const [today, setToday] = useState<Date | null>(null);
@@ -20,9 +35,20 @@ export default function Calendar() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const router=useRouter();
+  const router = useRouter();
 
-  // inicijalizacija
+  const [user] = useState<User>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('user');
+        return storedUser ? (JSON.parse(storedUser) as User) : {};
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  });
+
   useEffect(() => {
     const todayDate = startOfToday();
     setToday(todayDate);
@@ -32,7 +58,9 @@ export default function Calendar() {
   }, []);
 
   const firstDayCurrentMonth =
-    today && currentMonth ? parse(currentMonth, 'MMM-yyyy', new Date()) : new Date();
+    today && currentMonth
+      ? parse(currentMonth, 'MMM-yyyy', new Date())
+      : new Date();
 
   const { cleaningDates, loading } = useCleaningDates(cleanerId, refreshKey);
 
@@ -59,28 +87,29 @@ export default function Calendar() {
     const [startHour, startMinute] = startTime.split(':');
     startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
 
-    const conflict= cleaningDates.some(cd=>{
-      if(!cd.startDatetime) return false;
-      const existing=new Date(cd.startDatetime);
-      return(
-        existing.getFullYear()===startDateTime.getFullYear()&&
-        existing.getMonth()===startDateTime.getMonth()&&
-        existing.getDate()===startDateTime.getDate()&&
-        existing.getHours()===startDateTime.getHours()&&
-        existing.getMinutes()===startDateTime.getMinutes()
+    const endDateTime = new Date(startDateTime);
+    endDateTime.setHours(endDateTime.getHours() + 2);
+
+    const conflict = cleaningDates.some((cd) => {
+      if (!cd.startDatetime) return false;
+      const existing = new Date(cd.startDatetime);
+      return (
+        existing.getFullYear() === startDateTime.getFullYear() &&
+        existing.getMonth() === startDateTime.getMonth() &&
+        existing.getDate() === startDateTime.getDate() &&
+        existing.getHours() === startDateTime.getHours() &&
+        existing.getMinutes() === startDateTime.getMinutes()
       );
     });
 
-    if(conflict){
-      alert('Već postoji zakazano čišćenje u ovom terminu. Molimo odaberite drugo vreme.');
+    if (conflict) {
+      alert('Termin je zauzet. Molimo odaberite drugi termin.');
       return;
     }
 
     try {
       setIsSubmitting(true);
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const endDateTime = new Date(startDateTime);
-      endDateTime.setHours(endDateTime.getHours() + 2);
 
       const response = await fetch('/api/cleaning', {
         method: 'POST',
@@ -90,16 +119,18 @@ export default function Calendar() {
           endDatetime: format(endDateTime, "yyyy-MM-dd'T'HH:mm"),
           userId: `users/${user._key}`,
           cleanerId,
+          // user,
         }),
       });
 
       if (response.ok) {
         setShowAddForm(false);
-        setStartTime('09:00');
+        setStartTime('');
         handleRefresh();
         router.push('/additional-services');
       } else {
-        alert('Failed to add cleaning appointment');
+        const errorData = await response.json();
+        alert(errorData.error || 'Failed to add cleaning appointment');
       }
     } catch (error) {
       console.error('Failed to add cleaning:', error);
@@ -111,6 +142,26 @@ export default function Calendar() {
 
   if (!today) return <div className="p-8"></div>;
 
+  async function handleCancel(id:string){
+    try{
+      const response= await fetch(`/api/cleaning/${id}`,{
+        method:'DELETE',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({user})
+      });
+      if(response.ok){
+        alert('Termin je uspešno otkazan.');
+        handleRefresh();
+      }else{
+        const errorData= await response.json();
+        alert(errorData.error ||'Neuspešno otkazivanje termina.')
+      }
+    }catch(error){
+      console.error('Neuspešno otkazivanje termina:', error);
+      alert('Greška prilikom otkazivanja termina.');
+    }
+  }
+
   return (
     <div className="md:grid md:grid-cols-2 md:divide-x md:divide-gray-200">
       <div className="md:pr-14">
@@ -121,7 +172,13 @@ export default function Calendar() {
         />
 
         <div className="grid grid-cols-7 mt-10 text-xs text-center text-gray-500">
-          <div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div><div>Su</div>
+          <div>Mo</div>
+          <div>Tu</div>
+          <div>We</div>
+          <div>Th</div>
+          <div>Fr</div>
+          <div>Sa</div>
+          <div>Su</div>
         </div>
 
         <CalendarGrid
@@ -147,7 +204,11 @@ export default function Calendar() {
             <button
               type="button"
               onClick={() => setShowAddForm(true)}
-              className="inline-flex items-center justify-center w-8 h-8 text-gray-600 bg-gray-100 rounded-full hover:bg-gray-200 hover:text-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 active:scale-90"
+              disabled={user.role === 'cleaner'}
+              className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 
+              ${user.role === 'cleaner'
+                ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 active:scale-90'}`}
               title="Add cleaning appointment"
             >
               <span className="text-lg leading-none">+</span>
@@ -155,7 +216,11 @@ export default function Calendar() {
           </div>
         </div>
 
-        <CleaningSchedule selectedDay={selectedDay} cleaningDates={cleaningDates} />
+        <CleaningSchedule
+          selectedDay={selectedDay}
+          cleaningDates={cleaningDates}
+          onCancel={handleCancel}
+        />
       </section>
 
       {showAddForm && selectedDay && (

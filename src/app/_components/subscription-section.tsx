@@ -1,5 +1,8 @@
+"use client";
+
 import CheckIcon from '@/assets/check-icon';
 import SubscriptionButton from '@/components/subscription-button';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 
 const popularCard = [
@@ -20,6 +23,17 @@ const intensive = [
   'Dubinsko čišćenje mesečno',
 ];
 const SubscriptionSection = () => {
+  const router= useRouter();
+
+  const handleSubscriptionClick = () => {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if(!user){
+      router.push('/login');
+    }else{
+      router.push('/maid-selection');
+    }
+  }
+
   return (
     <div className="flex flex-col pt-[80px] gap-[80px] pb-[80px]">
       <div className="flex flex-col text-gray-700 items-center justify-center text-center ">
@@ -57,6 +71,7 @@ const SubscriptionSection = () => {
               <SubscriptionButton
                 txt="Odaberi plan"
                 className="h-[50px] bg-white text-gray-500  hover:bg-gray-100"
+                onClick={handleSubscriptionClick}
               />
             </div>
           </div>

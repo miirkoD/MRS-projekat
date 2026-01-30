@@ -4,12 +4,23 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const cleanerId = searchParams.get('cleaner');
+    const cleanerParam = searchParams.get('cleaner');
+    const role = searchParams.get('role');
+    const userId= searchParams.get('userId');
+
+    let cleanerId: string | null = cleanerParam;
+
+    if(role==='cleaner'&&userId){
+      cleanerId=userId;
+    }else if(cleanerParam){
+      cleanerId=cleanerParam;
+    }
 
     const query = `FOR a IN appointments
     ${cleanerId ? 'FILTER a.cleanerId == @cleanerId' : ''}
     LET u = DOCUMENT("users", a.userId)
-    RETURN MERGE(a, {user: {firstName: u.firstName, lastName: u.lastName}})`;
+    RETURN MERGE(a, {user: {firstName: u.firstName, lastName: u.lastName }
+    })`;
 
     const bindVars = cleanerId ? { cleanerId } : {};
     const cursor = await database.query(query, bindVars);
@@ -30,25 +41,34 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const collection = database.collection('appointments');
 
+    if(body.user?.role==='cleaner'){
+      return NextResponse.json(
+        {error: 'Spremačice ne mogu zakazivati termine.'},
+        {status:403}
+      );
+    }
+
     const appointment = {
       ...body,
       startDatetime: body.startDatetime,
       endDatetime: body.endDatetime,
+      status: 'scheduled',
     };
 
     const conflictQuery=  `FOR a IN appointments
-    FILTER a.cleanerId==@cleanerId
-    FILTER a.startDatetime==@startDatetime
+    FILTER a.cleanerId == @cleanerId
+    FILTER a.startDatetime == @startDatetime
     RETURN a`;
+    
     const conflictCursor=await database.query(conflictQuery,{
-      cleanerId: appointment.cleanerId,
+     cleanerId: appointment .cleanerId,
       startDatetime: appointment.startDatetime
     });
     const conflicts=await conflictCursor.all();
     
     if(conflicts.length>0){
       return NextResponse.json(
-        {error: 'Termin već postoji kod ove spremačice u izabranom vremenu. Molimo izaberite drugo vreme.'},
+        {error: 'Termin je već zauzet. Molimo izaberite drugo vreme.'},
         {status:409}
       );
     }
@@ -60,13 +80,8 @@ export async function POST(req: NextRequest) {
       RETURN a._key`);
 
     const lastKey = await cursor.next();
-    let nextKeyNumber = 1;
-
-    if (lastKey) {
-      const num = parseInt(lastKey.replace('appt', ''), 10);
-      nextKeyNumber = num + 1;
-    }
-    appointment._key = `appt${String(nextKeyNumber).padStart(3, '0')}`;
+    const nextKeyNumber = lastKey ? parseInt(lastKey.replace('appt',''), 10)+ 1 : 1;
+    appointment._key=`appt${String(nextKeyNumber).padStart(3,'0')}`;
 
     const result = await collection.save(appointment, { returnNew: true });
     return NextResponse.json(result.new, { status: 201 });

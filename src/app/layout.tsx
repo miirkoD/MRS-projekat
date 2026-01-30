@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono, Inter, Work_Sans } from 'next/font/google';
 import './globals.css';
+import ClientInit from './client-init';// u slucaju da zelimo da se uklanja iz localStorage-a svaki put kad se app load-uje
 
 const inter = Inter({
   subsets: ['latin'],

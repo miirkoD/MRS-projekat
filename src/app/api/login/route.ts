@@ -1,7 +1,7 @@
 import database from '@/lib/arango';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password } = body;
@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     }
 
     const { password: _, ...userWithoutPassword } = user;
+    
     return NextResponse.json(
       { message: 'Login successful', user: userWithoutPassword },
       { status: 200 },

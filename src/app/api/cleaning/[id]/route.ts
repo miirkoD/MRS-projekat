@@ -36,9 +36,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await context.params;
+    const body= await req.json();
+    const user=body.user;
+
     const collection = database.collection('appointments');
+    const appointment= await collection.document(id);
+
+    if(user.role==='cleaner'&& appointment.cleanerId!==user._key){
+      return NextResponse.json(
+        { error: "Možete otkazati samo termine koji su vama dodeljeni." },
+        { status: 403 }
+      )
+    }
+
     await collection.remove(id);
-    return NextResponse.json({ message: 'Deleted' });
+    return NextResponse.json({ message: 'Termin otkazan' }, { status: 200 });
   } catch (error) {
     console.error('Failed to delete appointment:', error);
     return NextResponse.json(
