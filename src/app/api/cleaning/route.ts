@@ -36,11 +36,20 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type Appointment={
+  userId: string;
+  cleanerId: string;
+  startDatetime: string;
+  endDatetime: string;
+  _key?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const collection = database.collection('appointments');
 
+     
     if(body.user?.role==='cleaner'){
       return NextResponse.json(
         {error: 'Spremačice ne mogu zakazivati termine.'},
@@ -48,12 +57,67 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const appointment = {
-      ...body,
+     const appointment: Appointment = {
+      userId: body.userId,
+      cleanerId: body.cleanerId,
       startDatetime: body.startDatetime,
       endDatetime: body.endDatetime,
-      status: 'scheduled',
     };
+
+    const startDate=new Date(body.startDatetime);
+    const monthStart=new Date(startDate.getFullYear(),startDate.getMonth(),1);
+    monthStart.setHours(0,0,0,0);
+    const monthEnd=new Date(startDate.getFullYear(),startDate.getMonth()+1,0);
+    monthEnd.setHours(23,59,59,999);
+
+    const weekStart=new Date(startDate);
+    weekStart.setDate(startDate.getDate()-startDate.getDay()+1);
+    weekStart.setHours(0,0,0,0);
+    const weekEnd=new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate()+6);
+    weekEnd.setHours(23,59,59,999);
+
+    const weekCountQuery=`FOR a IN appointments
+    FILTER a.userId == @userId
+    FILTER a.startDatetime>= @weekStart AND a.startDatetime<= @weekEnd
+    COLLECT WITH COUNT INTO length
+    RETURN length`;
+
+    const weekCountCursor=await database.query(weekCountQuery,{
+      userId: body.userId,
+      weekStart: weekStart.toISOString(),
+      weekEnd: weekEnd.toISOString()
+    });
+
+    const [weekCount]= await weekCountCursor.all();
+
+    if (weekCount>=1){
+      return NextResponse.json(
+        {error: 'Dostigli ste nedeljni limit od 1 zakazana čišćenja.'},
+        {status:403}
+      );
+    }
+
+    const countQuery=`FOR a IN appointments
+    FILTER a.userId == @userId
+    FILTER a.startDatetime >= @monthStart AND a.startDatetime <= @monthEnd
+    COLLECT WITH COUNT INTO length
+    RETURN length`;
+
+    const countCursor=await database.query(countQuery,{
+      userId: body.userId,
+      monthStart: monthStart.toISOString(),
+      monthEnd: monthEnd.toISOString()
+    });
+
+    const [count]= await countCursor.all();
+
+    if (count>=3){
+      return NextResponse.json(
+        {error: 'Dostigli ste mesečni limit od 3 zakazana čišćenja.'},
+        {status:403}
+      );
+    }
 
     const conflictQuery=  `FOR a IN appointments
     FILTER a.cleanerId == @cleanerId
@@ -80,11 +144,27 @@ export async function POST(req: NextRequest) {
       RETURN a._key`);
 
     const lastKey = await cursor.next();
-    const nextKeyNumber = lastKey ? parseInt(lastKey.replace('appt',''), 10)+ 1 : 1;
-    appointment._key=`appt${String(nextKeyNumber).padStart(3,'0')}`;
+    let nextKeyNumber =  1;
+
+    if(lastKey&& typeof lastKey ==='string' && lastKey.startsWith('appt')){
+      const num=parseInt(lastKey.replace('appt',''), 10);
+      if(!isNaN(num)){
+        nextKeyNumber=num+1;
+      }
+    }
+    appointment._key = `appt${String(nextKeyNumber).padStart(3, '0')}`;
 
     const result = await collection.save(appointment, { returnNew: true });
-    return NextResponse.json(result.new, { status: 201 });
+
+    const countCursor2=await database.query(countQuery,{
+      userId: body.userId,
+      monthStart: monthStart.toISOString(),
+      monthEnd: monthEnd.toISOString()
+    });
+
+    const [count2]= await countCursor2.all();
+
+    return NextResponse.json({...result.new, appointmentCount: count2}, { status: 201 });
   } catch (error) {
     console.error('Failed to create appointment:', error);
     return NextResponse.json(

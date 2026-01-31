@@ -2,15 +2,15 @@
 
 import { format, parseISO } from 'date-fns';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type CleaningDate = {
-  id?: string;
   _key?: string;
   name?: string;
   imageUrl?: string;
   startDatetime?: string;
   endDatetime?: string;
+  userId?: string;
   user?: {
     firstName?: string;
     lastName?: string;
@@ -22,6 +22,7 @@ type Props = {
   selectedDay: Date | null;
   cleaningDates: CleaningDate[];
   onCancel?: (id: string) => void;
+  onEdit?: (cd: CleaningDate) => void;
 };
 
 type User = {
@@ -31,7 +32,7 @@ type User = {
   lastName?: string;
 };
 
-export default function CleaningSchedule({ selectedDay, cleaningDates, onCancel }: Props) {
+export default function CleaningSchedule({ selectedDay, cleaningDates, onCancel, onEdit }: Props) {
   const [user]= useState<User>(()=>{
     if(typeof window !== 'undefined'){
       try{
@@ -55,11 +56,9 @@ export default function CleaningSchedule({ selectedDay, cleaningDates, onCancel 
     <div className="mt-6 space-y-4">
       {selectedDayCleaningDates.length > 0 ? (
         selectedDayCleaningDates.map((cd) => {
-          const startDt = cd.startDatetime;
-          const endDt = cd.endDatetime;
-          const startDateTime = startDt ? parseISO(startDt) : new Date();
-          const endDateTime = endDt ? parseISO(endDt) : new Date();
-          const id = cd.id || cd._key;
+          const startDateTime = cd.startDatetime ? parseISO(cd.startDatetime) : null;
+          const endDateTime = cd.endDatetime ? parseISO(cd.endDatetime) : null;
+          const id = cd._key;
 
           return (
             <div
@@ -81,13 +80,14 @@ export default function CleaningSchedule({ selectedDay, cleaningDates, onCancel 
                     {cd.user?.firstName} {cd.user?.lastName}
                   </p>
                   <p className="text-gray-600 text-sm">
-                    <time dateTime={startDt}>{format(startDateTime, 'HH:mm')}</time> –{' '}
-                    <time dateTime={endDt}>{format(endDateTime, 'HH:mm')}</time>
+                    <time dateTime={cd.startDatetime || ''}>{startDateTime ? format(startDateTime, 'HH:mm') : ''}</time> {' '}
+                    -{' '}
+                    <time dateTime={cd.endDatetime || ''}>{endDateTime ? format(endDateTime, 'HH:mm') : ''}</time>
                   </p>
                 </div>
               </div>
-
-              {user.role === 'cleaner' && cd.cleanerId === user._key && (
+              <div className="flex gap-2">
+              {user.role === 'cleaner' && cd.cleanerId === user._key && id && (
                 <button
                   onClick={() => onCancel && id && onCancel(id)}
                   className="px-3 py-1 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
@@ -95,6 +95,16 @@ export default function CleaningSchedule({ selectedDay, cleaningDates, onCancel 
                   Otkaži
                 </button>
               )}
+
+              {user._key && cd.userId === user._key && id && (
+                <button
+                  onClick={() => onEdit && onEdit(cd)}
+                  className="px-3 py-1 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition ml-2"
+                >
+                  Izmeni
+                </button>
+              )}
+            </div>
             </div>
           );
         })

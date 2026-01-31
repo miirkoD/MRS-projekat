@@ -25,6 +25,13 @@ type User = {
   lastName?: string;
 };
 
+type Appointment = {
+  _key?: string;
+  userId: string;
+  cleanerId: string;
+  startDatetime: string;
+  endDatetime: string;
+};
 
 export default function Calendar() {
   const [today, setToday] = useState<Date | null>(null);
@@ -35,6 +42,8 @@ export default function Calendar() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [startTime, setStartTime] = useState('09:00');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingAppointment, setEditingAppointment] =
+    useState<Appointment | null>(null);
   const router = useRouter();
 
   const [user] = useState<User>(() => {
@@ -83,6 +92,7 @@ export default function Calendar() {
 
   async function handleAddCleaning() {
     if (!selectedDay) return;
+
     const startDateTime = new Date(selectedDay);
     const [startHour, startMinute] = startTime.split(':');
     startDateTime.setHours(parseInt(startHour), parseInt(startMinute));
@@ -91,15 +101,10 @@ export default function Calendar() {
     endDateTime.setHours(endDateTime.getHours() + 2);
 
     const conflict = cleaningDates.some((cd) => {
-      if (!cd.startDatetime) return false;
-      const existing = new Date(cd.startDatetime);
-      return (
-        existing.getFullYear() === startDateTime.getFullYear() &&
-        existing.getMonth() === startDateTime.getMonth() &&
-        existing.getDate() === startDateTime.getDate() &&
-        existing.getHours() === startDateTime.getHours() &&
-        existing.getMinutes() === startDateTime.getMinutes()
-      );
+      if (!cd.startDatetime || !cd.endDatetime) return false;
+      const existingStart = new Date(cd.startDatetime);
+      const existingEnd = new Date(cd.endDatetime);
+      return existingStart < endDateTime && existingEnd > startDateTime;
     });
 
     if (conflict) {
@@ -111,23 +116,39 @@ export default function Calendar() {
       setIsSubmitting(true);
       const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-      const response = await fetch('/api/cleaning', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startDatetime: format(startDateTime, "yyyy-MM-dd'T'HH:mm"),
-          endDatetime: format(endDateTime, "yyyy-MM-dd'T'HH:mm"),
-          userId: `users/${user._key}`,
-          cleanerId,
-          // user,
-        }),
-      });
+      const payload = {
+        startDatetime: format(startDateTime, "yyyy-MM-dd'T'HH:mm"),
+        endDatetime: format(endDateTime, "yyyy-MM-dd'T'HH:mm"),
+        userId: user._key,
+        cleanerId,
+      };
+
+      let response;
+      if (editingAppointment) {
+        response = await fetch(`/api/cleaning/${editingAppointment._key}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        response = await fetch('/api/cleaning', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (response.ok) {
-        setShowAddForm(false);
-        setStartTime('');
-        handleRefresh();
-        router.push('/additional-services');
+        const data = await response.json();
+
+        if (data.appointmentCount === 3) {
+          router.push('/additional-services');
+        } else {
+          handleRefresh();
+          setShowAddForm(false);
+          setEditingAppointment(null);
+          setStartTime('');
+        }
       } else {
         const errorData = await response.json();
         alert(errorData.error || 'Failed to add cleaning appointment');
@@ -142,21 +163,21 @@ export default function Calendar() {
 
   if (!today) return <div className="p-8"></div>;
 
-  async function handleCancel(id:string){
-    try{
-      const response= await fetch(`/api/cleaning/${id}`,{
-        method:'DELETE',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({user})
+  async function handleCancel(id: string) {
+    try {
+      const response = await fetch(`/api/cleaning/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user }),
       });
-      if(response.ok){
+      if (response.ok) {
         alert('Termin je uspešno otkazan.');
         handleRefresh();
-      }else{
-        const errorData= await response.json();
-        alert(errorData.error ||'Neuspešno otkazivanje termina.')
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Neuspešno otkazivanje termina.');
       }
-    }catch(error){
+    } catch (error) {
       console.error('Neuspešno otkazivanje termina:', error);
       alert('Greška prilikom otkazivanja termina.');
     }
@@ -201,26 +222,39 @@ export default function Calendar() {
                 </time>
               )}
             </h2>
-            <button
-              type="button"
-              onClick={() => setShowAddForm(true)}
-              disabled={user.role === 'cleaner'}
-              className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 
-              ${user.role === 'cleaner'
-                ? 'bg-gray-300 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 active:scale-90'}`}
-              title="Add cleaning appointment"
-            >
-              <span className="text-lg leading-none">+</span>
-            </button>
+            {user.role !== 'cleaner' && (
+              <button
+                type="button"
+                onClick={() => setShowAddForm(true)}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 active:scale-90"
+                title="Add cleaning appointment"
+              >
+                <span className="text-lg leading-none">+</span>
+              </button>
+            )}
           </div>
         </div>
 
-        <CleaningSchedule
-          selectedDay={selectedDay}
-          cleaningDates={cleaningDates}
-          onCancel={handleCancel}
-        />
+        
+        {loading ? (
+          <p className="text-gray-400 mt-4">Učitavanje termina...</p>
+        ) : (
+          <CleaningSchedule
+            selectedDay={selectedDay}
+            cleaningDates={cleaningDates}
+            onCancel={handleCancel}
+            onEdit={(appt) => {
+              if (appt.userId === user._key) {
+                setEditingAppointment(appt as Appointment);
+                setShowAddForm(true);
+                if(appt.startDatetime){
+                  setSelectedDay(new Date(appt.startDatetime));
+                  setStartTime(format(new Date(appt.startDatetime), 'HH:mm'));
+                }
+              }
+            }}
+          />
+        )}
       </section>
 
       {showAddForm && selectedDay && (
@@ -229,8 +263,12 @@ export default function Calendar() {
           startTime={startTime}
           isSubmitting={isSubmitting}
           onStartTimeChange={setStartTime}
-          onCancel={() => setShowAddForm(false)}
+          onCancel={() => {
+            setShowAddForm(false);
+            setEditingAppointment(null);
+          }}
           onSubmit={handleAddCleaning}
+          editing={!!editingAppointment}
         />
       )}
     </div>
