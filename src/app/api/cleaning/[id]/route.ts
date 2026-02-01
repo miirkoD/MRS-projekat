@@ -10,6 +10,18 @@ export async function PUT(
     const body = await req.json();
     const collection = database.collection('appointments');
 
+    const existing = await collection.document(id).catch(() => null);
+    if (!existing) {
+      return NextResponse.json({ error: 'Termin ne postoji.' }, { status: 404 });
+    }
+
+    if(existing.userId!==body.userId){
+      return NextResponse.json(
+        { error: 'Možete menjati samo svoje termine.' },
+        { status: 403 }
+      );
+    }
+
     const updateData = {
       ...body,
       startDatetime: body.startDatetime || body.startDateTime,
@@ -19,8 +31,29 @@ export async function PUT(
     delete updateData.startDateTime;
     delete updateData.endDateTime;
 
-    await collection.update(id, updateData);
-    return NextResponse.json({ message: 'Updated' });
+    const conflictQuery = `FOR a IN appointments
+    FILTER a.cleanerId == @cleanerId
+    FILTER a._key != @id
+    FILTER a.startDatetime == @startDatetime
+    FILTER a.endDatetime == @endDatetime
+    RETURN a`;
+
+    const conflictCursor = await database.query(conflictQuery, {
+      cleanerId: updateData.cleanerId,
+      id,
+      startDatetime: updateData.startDatetime,
+      endDatetime: updateData.endDatetime,
+    });
+
+    const conflicts = await conflictCursor.all();
+    if (conflicts.length > 0) {
+      return NextResponse.json(
+        { error: 'Termin je zauzet. Molimo odaberite drugi termin.' },
+        { status: 409 }
+      );
+    }
+    const result = await collection.update(id, updateData, { returnNew: true });
+    return NextResponse.json(result.new, { status: 200 });
   } catch (error) {
     console.error('Failed to update appointment:', error);
     return NextResponse.json(

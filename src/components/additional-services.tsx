@@ -20,7 +20,6 @@ export default function AdditionalServices() {
 
   return (
     <div className="max-w-3xl mx-auto mt-16 text-center">
-      {/* Header */}
       <h2 className="text-2xl font-serif text-purple-600 mb-2 tracking-wide">
         TIDYME
       </h2>
@@ -28,7 +27,6 @@ export default function AdditionalServices() {
         Izaberite dodatne usluge
       </h1>
 
-      {/* Services Table */}
       <div className="border rounded-2xl shadow-lg overflow-hidden bg-white">
         <div className="grid grid-cols-3 bg-gray-100 px-6 py-3 text-left text-sm font-semibold text-gray-600">
           <span className="col-span-2">Vrsta usluge</span>
@@ -62,9 +60,8 @@ export default function AdditionalServices() {
         ))}
       </div>
 
-      {/* Skip button */}
       <button className="mt-10 bg-gray-200 hover:bg-gray-300 transition text-gray-700 px-8 py-3 rounded-xl font-medium shadow-sm">
-        Ne želim dodatne usluge
+        Nastavi
       </button>
     </div>
   );
