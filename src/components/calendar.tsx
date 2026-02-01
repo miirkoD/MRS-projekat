@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import {
   add,
+  addMonths,
   eachDayOfInterval,
   endOfMonth,
   format,
@@ -46,6 +47,9 @@ export default function Calendar() {
     useState<Appointment | null>(null);
   const router = useRouter();
 
+  const subscriptionStart = new Date();
+  const subscriptionEnd = addMonths(subscriptionStart, 1);
+
   const [user] = useState<User>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -71,12 +75,12 @@ export default function Calendar() {
       ? parse(currentMonth, 'MMM-yyyy', new Date())
       : new Date();
 
-  const { cleaningDates, loading } = useCleaningDates(cleanerId, refreshKey);
-
   const days = eachDayOfInterval({
     start: firstDayCurrentMonth,
     end: endOfMonth(firstDayCurrentMonth),
   });
+
+  const { cleaningDates, loading } = useCleaningDates(cleanerId, refreshKey);
 
   function previousMonth() {
     const firstDayPrevMonth = add(firstDayCurrentMonth, { months: -1 });
@@ -90,8 +94,22 @@ export default function Calendar() {
 
   const handleRefresh = () => setRefreshKey((prev) => prev + 1);
 
+  
+  const handleSelectDay = (day: Date) => {
+    if(day< subscriptionStart || day > subscriptionEnd){
+      alert('Datum je van perioda vaše pretplate.');
+      return;
+    }
+    setSelectedDay(day);
+  };
+
   async function handleAddCleaning() {
     if (!selectedDay) return;
+
+    if(selectedDay < subscriptionStart || selectedDay > subscriptionEnd){
+      alert('Datum je van perioda vaše pretplate.');
+      return;
+    }
 
     const startDateTime = new Date(selectedDay);
     const [startHour, startMinute] = startTime.split(':');
@@ -147,7 +165,7 @@ export default function Calendar() {
           handleRefresh();
           setShowAddForm(false);
           setEditingAppointment(null);
-          setStartTime('');
+          setStartTime('9:00');
         }
       } else {
         const errorData = await response.json();
@@ -207,7 +225,9 @@ export default function Calendar() {
           selectedDay={selectedDay}
           currentMonth={firstDayCurrentMonth}
           cleaningDates={cleaningDates}
-          onSelectDay={setSelectedDay}
+          onSelectDay={handleSelectDay}
+          subscriptionStart={subscriptionStart}
+          subscriptionEnd={subscriptionEnd}
         />
       </div>
 

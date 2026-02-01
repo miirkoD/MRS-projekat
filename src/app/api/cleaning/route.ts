@@ -42,6 +42,7 @@ type Appointment={
   startDatetime: string;
   endDatetime: string;
   _key?: string;
+  subscriptionId: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -57,11 +58,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const subCursor= await database.query(`
+      FOR s in appointments
+      SORT TO_NUMBER(s.subscriptionId) DESC
+      LIMIT 1
+      RETURN s.subscriptionId`);
+
+      const lastSubId= await subCursor.next();
+      let nextSubIdNumber=1;
+
+      if (lastSubId && !isNaN(Number(lastSubId))){
+        nextSubIdNumber=Number(lastSubId)+1;
+      }
+
      const appointment: Appointment = {
       userId: body.userId,
       cleanerId: body.cleanerId,
       startDatetime: body.startDatetime,
       endDatetime: body.endDatetime,
+      subscriptionId: nextSubIdNumber,
     };
 
     const startDate=new Date(body.startDatetime);
