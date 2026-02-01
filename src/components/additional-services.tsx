@@ -1,25 +1,92 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from 'react';
 
 const SERVICES = [
-  { id: 1, name: "Pranje veša", price: 5 },
-  { id: 2, name: "Peglanje veša", price: 7 },
-  { id: 3, name: "Dubinsko pranje nameštaja", price: 35 },
-  { id: 4, name: "Pranje sudova", price: 5 },
+  { id: 1, name: 'Pranje veša', price: 5 },
+  { id: 2, name: 'Peglanje veša', price: 7 },
+  { id: 3, name: 'Dubinsko pranje nameštaja', price: 35 },
+  { id: 4, name: 'Pranje sudova', price: 5 },
 ];
 
 export default function AdditionalServices() {
   const [selected, setSelected] = useState<number[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [appointmentIds, setAppointmentIds] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('appointmentIds');
+      return stored ? JSON.parse(stored) : [];
+    }
+    return [];
+  });
+
+  const user =
+    typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('user') || '{}')
+      : {};
+
+  const selectedPlan =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('selectedPlan') || ''
+      : '';
+
+  const basePrice =
+    typeof window !== 'undefined'
+      ? parseFloat(localStorage.getItem('price') || '0')
+      : 0;
 
   const toggleService = (id: number) => {
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
     );
   };
 
-  const selectedServices = SERVICES.filter((service) => selected.includes(service.id));
-  const totalPrice = selectedServices.reduce((sum, service) => sum + service.price, 0);
+  const selectedServices = SERVICES.filter((service) =>
+    selected.includes(service.id),
+  );
+
+  const additionalPrice = selectedServices.reduce(
+    (sum, service) => sum + service.price,
+    0,
+  );
+
+  const totalPrice = basePrice + additionalPrice;
+
+  async function saveSubscription() {
+    try {
+      setIsSubmitting(true);
+
+      const payload = {
+        userId: user._key,
+        selectedPlan,
+        appointmentIds,
+        startDate: new Date().toISOString(),
+        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1),).toISOString(),
+        additionalServices: selectedServices.length > 0 ? selectedServices.map((s)=>s.name):[],
+        price: totalPrice,
+        status: 'active',
+      };
+
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert('Pretplata je uspešno sačuvana!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Greška pri čuvanju pretplate.');
+      }
+    } catch (err) {
+      console.error('Greška:', err);
+      alert('Došlo je do greške.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto mt-16 text-center">
@@ -56,11 +123,11 @@ export default function AdditionalServices() {
                     onClick={() => toggleService(service.id)}
                     className={`px-4 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${
                       selected.includes(service.id)
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-purple-500 text-white hover:bg-purple-600"
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-purple-500 text-white hover:bg-purple-600'
                     }`}
                   >
-                    {selected.includes(service.id) ? "Dodato" : "Dodaj"}
+                    {selected.includes(service.id) ? 'Dodato' : 'Dodaj'}
                   </button>
                 </td>
               </tr>
@@ -97,10 +164,13 @@ export default function AdditionalServices() {
         </div>
       )}
 
-      <button className="mt-10 bg-gray-200 hover:bg-gray-300 transition text-gray-700 px-8 py-3 rounded-xl font-medium shadow-sm">
-        Nastavi
+      <button
+        onClick={saveSubscription}
+        disabled={isSubmitting}
+        className="mt-10 bg-purple-600 hover:bg-purple-700 transition text-white px-8 py-3 rounded-xl font-medium shadow-sm"
+      >
+        {isSubmitting ? 'Čuvanje...' : 'Sačuvaj pretplatu'}
       </button>
-
     </div>
   );
 }

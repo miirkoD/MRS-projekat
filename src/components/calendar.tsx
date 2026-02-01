@@ -103,6 +103,15 @@ export default function Calendar() {
     setSelectedDay(day);
   };
 
+  function addAppointmentId(id: string) {
+    const stored = localStorage.getItem('appointmentIds');
+    const ids= stored ? JSON.parse(stored) as string[] : [];
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem('appointmentIds', JSON.stringify(ids));
+    }
+  }
+
   async function handleAddCleaning() {
     if (!selectedDay) return;
 
@@ -158,6 +167,10 @@ export default function Calendar() {
 
       if (response.ok) {
         const data = await response.json();
+
+        if(data._key){
+          addAppointmentId(data._key);
+        }
 
         if (data.appointmentCount === 3) {
           router.push('/additional-services');
