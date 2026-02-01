@@ -49,11 +49,10 @@ const Page = () => {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('user', JSON.stringify(data.user));
-        if (data.user.role === 'cleaner'){
+        if (data.user.role === 'cleaner') {
           router.push('/date-selection');
-        }
-        else{
-          router.push('/maid-selection');
+        } else {
+          router.push('/');
         }
       } else {
         const data = await response.json();
