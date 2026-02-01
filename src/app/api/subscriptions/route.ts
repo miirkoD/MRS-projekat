@@ -2,14 +2,14 @@ import database from '@/lib/arango';
 import { NextResponse, NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
- try {
+  try {
     const body = await req.json();
     const collection = database.collection('subscriptions');
 
     if (!body.userId || !body.selectedPlan || !body.appointmentIds) {
       return NextResponse.json(
-        { error: "Nedostaju obavezna polja." },
-        { status: 400 }
+        { error: 'Missing required fields' },
+        { status: 400 },
       );
     }
 
@@ -21,20 +21,16 @@ export async function POST(req: NextRequest) {
       endDate: body.endDate,
       additionalServices: body.additionalServices || [],
       price: body.price,
-      status: body.status || "active",
+      status: body.status || 'active',
     };
 
     const result = await collection.save(subscription, { returnNew: true });
 
     return NextResponse.json(result.new, { status: 201 });
   } catch (err) {
-    console.error("Greška pri kreiranju pretplate:", err);
-    return NextResponse.json(
-      { error: "Greška na serveru." },
-      { status: 500 }
-    );
+    console.error('Error creating subscription:', err);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
-
 }
 
 export async function GET(req: NextRequest) {

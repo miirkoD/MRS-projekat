@@ -3,7 +3,7 @@
 import CheckIcon from '@/assets/check-icon';
 import SubscriptionButton from '@/components/subscription-button';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const popularCard = [
   '1x čišćenje nedeljno',
@@ -22,11 +22,50 @@ const intensive = [
   'Sve iz Trostrukog plana',
   'Dubinsko čišćenje mesečno',
 ];
+
+type Subscription = {
+  _key: string;
+  planType: string;
+  price: number;
+  startDate: string;
+  endDate: string;
+  status: string;
+  createdAt: string;
+};
+
 const SubscriptionSection = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
+  const [hasSubscribed, setHasSubscribed] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
+
+      const user = JSON.parse(userStr);
+      const response = await fetch(
+        `/api/subscriptions?userId=${user._key || user.id}`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const hasActive = data.subscriptions.some(
+          (sub: Subscription) => sub.status === 'active',
+        );
+        setHasSubscribed(hasActive);
+      }
+    };
+
+    checkSubscription();
+  }, []);
+
   const handleSubscriptionClick = async (planType: string, price: number) => {
+    if (hasSubscribed) {
+      alert('Već imate aktivnu pretplatu!');
+      return;
+    }
     localStorage.setItem('selectedPlan', planType);
     localStorage.setItem('price', price.toString());
     const userStr = localStorage.getItem('user');
