@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
 import CheckIcon from '@/assets/check-icon';
 import SubscriptionButton from '@/components/subscription-button';
 import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState } from 'react';
 
 const popularCard = [
   '1x čišćenje nedeljno',
@@ -23,16 +23,22 @@ const intensive = [
   'Dubinsko čišćenje mesečno',
 ];
 const SubscriptionSection = () => {
-  const router= useRouter();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubscriptionClick = () => {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    if(!user){
+  const handleSubscriptionClick = async (planType: string, price: number) => {
+    localStorage.setItem('selectedPlan', planType);
+    localStorage.setItem('price', price.toString());
+    const userStr = localStorage.getItem('user');
+    if (!userStr) {
       router.push('/login');
-    }else{
-      router.push('/maid-selection');
+      return;
     }
-  }
+
+    const user = JSON.parse(userStr);
+    setIsLoading(true);
+    router.push('/maid-selection');
+  };
 
   return (
     <div className="flex flex-col pt-[80px] gap-[80px] pb-[80px]">
@@ -71,7 +77,7 @@ const SubscriptionSection = () => {
               <SubscriptionButton
                 txt="Odaberi plan"
                 className="h-[50px] bg-white text-gray-500  hover:bg-gray-100"
-                onClick={handleSubscriptionClick}
+                onClick={() => handleSubscriptionClick('Nedeljni', 79)}
               />
             </div>
           </div>
@@ -105,6 +111,7 @@ const SubscriptionSection = () => {
                 className="h-[58px] bg-[#A093AA]
         hover:bg-[#8F7F9A]
         text-white"
+                onClick={() => handleSubscriptionClick('Trostruki', 149)}
               />
             </div>
           </div>
@@ -136,6 +143,7 @@ const SubscriptionSection = () => {
               <SubscriptionButton
                 txt="Odaberi plan"
                 className="h-[50px] bg-white text-gray-500 hover:bg-gray-100"
+                onClick={() => handleSubscriptionClick('Intenzivni', 349)}
               />
             </div>
           </div>

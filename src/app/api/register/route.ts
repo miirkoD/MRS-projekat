@@ -7,7 +7,10 @@ export async function POST(req: Request) {
     const collection = database.collection('users');
 
     const newUser = {
-      username: body.username,
+      name: body.name,
+      lastName: body.lastName,
+      adress: body.adress,
+      role: body.role,
       email: body.email,
       password: body.password,
     };

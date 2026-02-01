@@ -21,6 +21,8 @@ const Page = () => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
+    adress: '',
+    role: '',
     email: '',
     password: '',
   });
@@ -44,7 +46,10 @@ const Page = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: `${formData.firstName} ${formData.lastName}`,
+          name: formData.firstName,
+          lastName: formData.lastName,
+          adress: formData.adress,
+          role: 'user',
           email: formData.email,
           password: formData.password,
         }),
@@ -105,6 +110,13 @@ const Page = () => {
               type="email"
               name="email"
               value={formData.email}
+              onChange={handleChange}
+            />
+            <InputField
+              txt="Adresa"
+              type="text"
+              name="adress"
+              value={formData.adress}
               onChange={handleChange}
             />
             <InputField
