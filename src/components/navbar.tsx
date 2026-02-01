@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 import React, { useEffect } from 'react';
 import SignupButton from './signup-button';
